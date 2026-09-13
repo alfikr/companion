@@ -15,6 +15,11 @@
 </p>
 
 <p align="center">
+  <a href="https://chromewebstore.google.com/detail/meet-companion/neeapigpheabagekbdfjdekgdicfckpn"><img src="assets/badges/chrome-web-store.svg" alt="Available in the Chrome Web Store" height="54"></a>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/meet-companion/"><img src="assets/badges/firefox-addon.svg" alt="Get the add-on Firefox Browser" height="54"></a>
+</p>
+
+<p align="center">
   <a href="#download"><b>Download →</b></a> ·
   <a href="INSTALL.md"><b>Build from source</b></a> ·
   <a href="CONTRIBUTING.md"><b>Contributing</b></a>
