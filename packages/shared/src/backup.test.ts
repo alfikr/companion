@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   BACKUP_FORMAT,
@@ -136,6 +137,22 @@ describe('planRestore', () => {
     const second = planRestore(first.writes, backup);
     expect(second.added).toBe(0);
     expect(second.skipped).toBe(Object.keys(backup.data).length);
+  });
+});
+
+describe('archive round-trip', () => {
+  const hash = (data: Record<string, unknown>) =>
+    createHash('sha256')
+      .update(JSON.stringify(Object.keys(data).sort().map((k) => [k, data[k]])))
+      .digest('hex');
+
+  it('restores equal ids, counts and content hash into an empty profile', () => {
+    const portable = Object.fromEntries(Object.entries(dump).filter(([k]) => isPortableKey(k)));
+    const restored = planRestore({}, readBackup(JSON.stringify(makeBackup(dump, '1.7.0')))).writes;
+
+    expect(Object.keys(restored).sort()).toEqual(Object.keys(portable).sort());
+    expect(countMeetings(restored)).toBe(countMeetings(portable));
+    expect(hash(restored)).toBe(hash(portable));
   });
 });
 
