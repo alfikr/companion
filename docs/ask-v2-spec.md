@@ -947,7 +947,7 @@ Spec ini dianggap **final** ketika:
 - [x] Semua 15 kategori evaluasi memiliki fixture JSON terpisah di repo
 - [x] Setiap fixture diujikan di `askeval.test.ts` (single-meeting) atau `globalask.eval.test.ts` (global) dengan assertions lengkap
 - [x] `meeting-shared-solution.json` tersedia sebagai file standalone (bukan inline const)
-- [ ] Semua test lulus: `npm test` (packages/ai, packages/meeting) — belum dijalankan di sesi ini, jalankan `make test` untuk verifikasi
+- [x] Semua test lulus: `make test` — 62 file, 642 test (13 September 2026)
 - [x] Tidak ada perubahan kode di luar `packages/{ai,meeting,store}` (constraint D1)
 - [x] Audit gap di §10 diperbarui jika kode berubah
 

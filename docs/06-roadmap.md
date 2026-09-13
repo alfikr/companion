@@ -38,11 +38,12 @@ enough to close a one-way-door decision, but its feature backlog does not start 
 
 ## Current release train — Stage 0
 
-Repository snapshot verified on 1 September 2026:
+Repository snapshot verified on 13 September 2026:
 
 | Work item | Evidence-backed state | Next executable action |
 |---|---|---|
-| Ask v2 | **In progress:** six eval groups are coded; the 15 standalone JSON fixtures required by the spec are absent | Add the missing fixtures and finish the spec DoD |
+| Ask v2 | **Done:** all 15 standalone fixtures exist under `packages/meeting/src/fixtures/ask-eval/`; spec DoD checked; `make test` passes | None |
+| Archive round-trip | **Done:** `packages/shared/src/backup.test.ts` restores a backup into an empty profile with equal keys, meeting count and content hash | None |
 | Obsidian export | **Implemented, release unverified:** UI/background handlers and `export.obsidian` audit events exist | Fix the gate clock below, then release and record T0 |
 | G1/G2 clock | **Fixed:** `ensureReleaseT0` (packages/shared/src/storage.ts) persists one release T0, stamped on install/update via `chrome.runtime.onInstalled`/`onStartup`; `gateSummary` now takes it as a required anchor instead of guessing from the audit ring | Release the export probe and record T0 in the gate review |
 | G3 measurement | **Fixed:** `g3Rollup` (packages/exporters/src/g3.ts) buckets `ask.global`'s `meetingsCited` into the trailing 4 weeks and reports whether qualifying (≥2 meetings) queries trend upward; included in the audit export alongside `gate` | Collect real usage once the export probe ships and T0 is recorded |
