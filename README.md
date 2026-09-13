@@ -15,8 +15,8 @@
 </p>
 
 <p align="center">
-  <a href="https://chromewebstore.google.com/detail/meet-companion/neeapigpheabagekbdfjdekgdicfckpn"><img src="https://img.shields.io/chrome-web-store/v/neeapigpheabagekbdfjdekgdicfckpn?logo=googlechrome&logoColor=white&label=Chrome%20Web%20Store" alt="Chrome Web Store"></a>
-  <a href="https://addons.mozilla.org/en-US/firefox/addon/meet-companion/"><img src="https://img.shields.io/amo/v/meet-companion?logo=firefoxbrowser&logoColor=white&label=Firefox%20Add-ons" alt="Firefox Add-ons"></a>
+  <a href="https://chromewebstore.google.com/detail/meet-companion/neeapigpheabagekbdfjdekgdicfckpn"><img src="assets/badges/chrome-web-store.svg" alt="Available in the Chrome Web Store" height="54"></a>
+  <a href="https://addons.mozilla.org/en-US/firefox/addon/meet-companion/"><img src="assets/badges/firefox-addon.svg" alt="Get the add-on Firefox Browser" height="54"></a>
 </p>
 
 <p align="center">
