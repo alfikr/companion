@@ -34,6 +34,7 @@ export const RESOLVED_PREFIX = 'resolved:';
 export const CLEAN_PREFIX = 'clean:';
 export const DOCPROG_PREFIX = 'docprog:';
 export const TITLE_PREFIX = 'title:';
+export const CONTEXT_PREFIX = 'context:';
 const SETTINGS_KEY = 'settings';
 export const AUDIT_KEY = 'audit';
 const RELEASE_T0_KEY = 'releaseT0';
@@ -79,6 +80,8 @@ export function parseMeetings(all: Record<string, unknown>): Meeting[] {
       get(key.slice(TRANSCRIPT_PREFIX.length)).entries = value as Entry[];
     } else if (key.startsWith(META_PREFIX) && value) {
       get(key.slice(META_PREFIX.length)).meta = value as MeetingMeta;
+    } else if (key.startsWith(CONTEXT_PREFIX) && typeof value === 'string') {
+      get(key.slice(CONTEXT_PREFIX.length)).context = value;
     }
   }
   // Sort by start time, NOT lastActivity: live heartbeats bump lastSeenAt
@@ -172,7 +175,26 @@ export async function clearMeeting(id: string): Promise<void> {
     RESOLVED_PREFIX + id,
     CLEAN_PREFIX + id,
     TITLE_PREFIX + id,
+    CONTEXT_PREFIX + id,
   ]);
+}
+
+// -- meeting context & goals (user-provided background to steer AI analysis) --
+
+export async function getContext(id: string): Promise<string> {
+  const key = CONTEXT_PREFIX + id;
+  const res = await chrome.storage.local.get(key);
+  return (res[key] as string) ?? '';
+}
+
+export async function saveContext(id: string, context: string): Promise<void> {
+  const key = CONTEXT_PREFIX + id;
+  const trimmed = context.trim();
+  if (!trimmed) {
+    await chrome.storage.local.remove(key);
+  } else {
+    await chrome.storage.local.set({ [key]: trimmed });
+  }
 }
 
 // -- cleaned transcript (AI-corrected ASR errors, kept alongside the raw one) --

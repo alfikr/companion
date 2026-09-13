@@ -181,8 +181,8 @@ export const en = {
   'ext.sidebar.expand': 'Expand sidebar',
 
   // -- extension: meeting header -------------------------------------------
-  'ext.header.agendaPlaceholder': 'Meeting agenda (optional)',
-  'ext.header.agenda': 'Meeting agenda',
+  'ext.header.contextPlaceholder': 'Meeting context & goals (optional)',
+  'ext.header.context': 'Meeting context',
   'ext.header.openActions': ' · {count} action items',
   'ext.header.openQuestions': ' · {count} open questions',
 
@@ -284,6 +284,11 @@ export const en = {
   'ext.summary.emptyHint': 'Run the AI analysis for a summary, decisions and action items.',
   'ext.summary.makeMom': 'Make interim minutes',
   'ext.summary.generate': 'Generate now',
+  'ext.summary.contextTitle': 'Meeting Context & Goals',
+  'ext.summary.contextHint': 'Add background context or goals so AI does not make false assumptions.',
+  'ext.summary.contextPlaceholder': 'e.g. Sprint review with client ABC. Discussing payment gateway blockers and target release date.',
+  'ext.summary.contextSave': 'Save Context',
+  'ext.summary.contextSaved': 'Context saved.',
 
   // -- extension: ask -------------------------------------------------------
   'ext.ask.suggest1': 'What were the main decisions in this meeting?',

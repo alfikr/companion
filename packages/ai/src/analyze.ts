@@ -51,6 +51,7 @@ Balas HANYA dengan satu objek JSON valid (tanpa markdown fence, tanpa teks lain)
   "nextSteps": [string]
 }
 Gunakan bahasa yang sama dengan transcript. Field yang tidak ada isinya = array kosong / string kosong. Jangan mengarang fakta.
+Jika tersedia "Konteks & Latar Belakang Rapat", jadikan sebagai acuan utama agar ringkasan, keputusan, dan action items relevan serta tidak berasumsi keliru atas hal-hal yang tidak disebutkan.
 
 Aturan "decisions": tiap keputusan berisi "what" (keputusan yang diambil), "why" (alasan singkat), "rejected" (opsi yang ditolak beserta alasan, boleh kosong), dan "topic" (label topik/area pendek dalam kebab-case, mis. "arsitektur-order"). Kosongkan field yang tidak disebut.`;
 
@@ -58,7 +59,8 @@ export function buildUserPrompt(m: Meeting, part?: { index: number; total: numbe
   const header = part
     ? `Meeting: ${m.id} (bagian ${part.index + 1} dari ${part.total} — analisis bagian ini saja)`
     : `Meeting: ${m.id}`;
-  return `${header}\nTranscript:\n${formatTranscript(m)}`;
+  const context = m.context?.trim() ? `\nKonteks & Latar Belakang Rapat:\n${m.context.trim()}\n` : '';
+  return `${header}${context}\nTranscript:\n${formatTranscript(m)}`;
 }
 
 /**

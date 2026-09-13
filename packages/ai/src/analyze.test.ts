@@ -100,6 +100,16 @@ describe('formatTranscript / buildUserPrompt', () => {
     expect(p).toContain('Manan:');
   });
 
+  it('includes meeting context when provided', () => {
+    const withCtx: Meeting = {
+      ...meeting,
+      context: 'Sprint evaluation: focus on payment integration',
+    };
+    const p = buildUserPrompt(withCtx);
+    expect(p).toContain('Konteks & Latar Belakang Rapat:');
+    expect(p).toContain('Sprint evaluation: focus on payment integration');
+  });
+
   it('truncates very long transcripts around the middle', () => {
     const long: Meeting = {
       ...meeting,
