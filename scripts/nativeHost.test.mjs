@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -7,6 +7,7 @@ import {
   extensionIdFromKey,
   hostManifest,
   hostManifestDir,
+  installHost,
   verifyInstalledHost,
   wrapperScript,
 } from './nativeHost.mjs';
@@ -81,6 +82,36 @@ describe('wrapperScript', () => {
   it('quotes paths so a space in them cannot split the command', () => {
     const sh = wrapperScript('/usr/bin/node', '/Users/a b/Application Support/native-host.mjs');
     expect(sh).toContain('"/Users/a b/Application Support/native-host.mjs"');
+  });
+});
+
+describe.skipIf(process.platform === 'win32')('installHost update (A6)', () => {
+  let home, oldHome;
+
+  beforeEach(() => {
+    oldHome = process.env.HOME;
+    home = mkdtempSync(join(tmpdir(), 'meetcc-update-'));
+    process.env.HOME = home;
+  });
+
+  afterEach(() => {
+    process.env.HOME = oldHome;
+    rmSync(home, { recursive: true, force: true });
+  });
+
+  it('reinstalling swaps the host in place without moving what the browser paired with', () => {
+    const profileDir = join(home, 'profile');
+    const src = join(home, 'src.mjs');
+    const args = { browser: { engine: 'chromium' }, profileDir, hostSource: src, extensionId: 'abc', nodePath: '/usr/bin/node' };
+
+    writeFileSync(src, '// v1\n');
+    const first = installHost(args);
+    writeFileSync(src, '// v2\n');
+    const second = installHost(args);
+
+    expect(second).toEqual(first);
+    expect(readFileSync(second.hostPath, 'utf8')).toBe('// v2\n');
+    expect(verifyInstalledHost({ ...second, extensionId: 'abc', engine: 'chromium' })).toEqual({ ok: true, problems: [] });
   });
 });
 
