@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { SessionRow } from '@meetcc/store';
 import type { CarryOver } from '@meetcc/meeting';
 import { carryOver, db, getSession, listProjects } from '../lib/db';
+import { getContext, saveContext } from '@meetcc/shared';
 import { locale, t } from '@meetcc/shared/i18n';
 
 // P1.5 — a meeting is more than a room code: date, duration, participants and
@@ -37,11 +38,16 @@ export function MeetingHeader({
   useEffect(() => {
     let alive = true;
     setFailed(false);
-    Promise.all([getSession(sessionId), carryOver(sessionId), listProjects()])
-      .then(([s, c, p]) => {
+    Promise.all([
+      getSession(sessionId),
+      carryOver(sessionId),
+      listProjects(),
+      getContext(sessionId),
+    ])
+      .then(([s, c, p, ctx]) => {
         if (!alive) return;
         setSession(s);
-        setAgenda(s?.agenda ?? '');
+        setAgenda(ctx || s?.agenda || '');
         setCarry(c);
         setProjects(p);
       })
@@ -91,10 +97,12 @@ export function MeetingHeader({
         <input
           className="mh-agenda"
           value={agenda}
-          placeholder={t('ext.header.agendaPlaceholder')}
-          aria-label={t('ext.header.agenda')}
+          placeholder={t('ext.header.contextPlaceholder')}
+          aria-label={t('ext.header.context')}
+          title={t('ext.header.context')}
           onChange={(e) => setAgenda(e.target.value)}
           onBlur={() => {
+            void saveContext(sessionId, agenda).catch(() => undefined);
             if (agenda === (session.agenda ?? '')) return;
             void db('set-session-agenda', { id: sessionId, agenda }).catch(() => undefined);
           }}

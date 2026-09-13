@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { onLangChange, t } from '@meetcc/shared/i18n';
 import {
   ANALYSIS_PREFIX,
+  CONTEXT_PREFIX,
   META_PREFIX,
   TITLE_PREFIX,
   TRANSCRIPT_PREFIX,
@@ -121,6 +122,7 @@ function Shell({ initialMeeting }: { initialMeeting: string | null }) {
       META_PREFIX,
       ANALYSIS_PREFIX,
       TITLE_PREFIX,
+      CONTEXT_PREFIX,
     ]);
     const tick = setInterval(() => setNow(Date.now()), 5000);
     // ⌘K / Ctrl-K opens search from anywhere, including while typing in a view
