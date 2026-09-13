@@ -11,10 +11,13 @@ import {
   parseMeetings,
   parseTitles,
   saveTitle,
+  getContext,
+  saveContext,
   watchStorage,
   ANALYSIS_PREFIX,
   AUDIT_KEY,
   AUDIT_RING_MAX,
+  CONTEXT_PREFIX,
   META_PREFIX,
   TITLE_PREFIX,
   TRANSCRIPT_PREFIX,
@@ -87,6 +90,21 @@ describe('parsers', () => {
   it('reads analyses and titles, skipping blank titles', () => {
     expect(Object.keys(parseAnalyses(RAW))).toEqual(['new']);
     expect(parseTitles(RAW)).toEqual({ new: 'Sprint planning' });
+  });
+
+  it('parses context and gets/saves context', async () => {
+    const rawWithCtx = {
+      ...RAW,
+      [CONTEXT_PREFIX + 'new']: 'Sprint goal: finish checkout',
+    };
+    const meetings = parseMeetings(rawWithCtx);
+    expect(meetings[0].context).toBe('Sprint goal: finish checkout');
+
+    await saveContext('new', 'Updated goal');
+    expect(await getContext('new')).toBe('Updated goal');
+
+    await saveContext('new', '   ');
+    expect(await getContext('new')).toBe('');
   });
 });
 

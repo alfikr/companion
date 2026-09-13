@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { locale, t } from '@meetcc/shared/i18n';
 import type { Analysis, AnalysisRecord, Meeting } from '@meetcc/shared';
-import { appendAudit } from '@meetcc/shared';
+import { appendAudit, saveContext } from '@meetcc/shared';
 import { toMarkdown } from '@meetcc/exporters/markdown';
 import { obsidianPath, toObsidian } from '@meetcc/exporters/obsidian';
 import { GATE_EVENT } from '@meetcc/exporters/gate';
@@ -153,6 +153,68 @@ function Result({ meeting, analysis }: { meeting: Meeting; analysis: Analysis })
   );
 }
 
+function ContextCard({ meeting }: { meeting: Meeting }) {
+  const [context, setContext] = useState(meeting.context ?? '');
+  const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const toast = useToast();
+
+  useEffect(() => {
+    setContext(meeting.context ?? '');
+  }, [meeting.context]);
+
+  const handleSave = async () => {
+    await saveContext(meeting.id, context);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+    toast('success', t('ext.summary.contextSaved'));
+  };
+
+  const hasContext = !!context.trim();
+
+  return (
+    <div className="summary-context-card">
+      <button
+        type="button"
+        className="summary-context-header"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span className="summary-context-title">
+          {t('ext.summary.contextTitle')}
+          {hasContext && <span className="context-indicator" />}
+        </span>
+        <span className="summary-context-preview dim">
+          {hasContext
+            ? context.trim().slice(0, 45) + (context.trim().length > 45 ? '…' : '')
+            : t('ext.summary.contextHint')}
+        </span>
+        <span className="summary-context-arrow">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="summary-context-body">
+          <textarea
+            className="summary-context-input"
+            value={context}
+            placeholder={t('ext.summary.contextPlaceholder')}
+            onChange={(e) => setContext(e.target.value)}
+            onBlur={handleSave}
+            rows={3}
+          />
+          <div className="summary-context-footer">
+            <span className="dim" style={{ fontSize: 11 }}>
+              {t('ext.summary.contextHint')}
+            </span>
+            <button type="button" className="small primary" onClick={handleSave}>
+              {saved ? t('ext.summary.contextSaved') : t('ext.summary.contextSave')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Props {
   meeting: Meeting;
   record: AnalysisRecord | null;
@@ -257,6 +319,7 @@ export function SummaryView({ meeting, record, live }: Props) {
           {record.provisional &&
             ' · MoM sementara dari transcript sejauh ini — diganti otomatis setelah meeting selesai'}
         </div>
+        <ContextCard meeting={meeting} />
         <Result meeting={meeting} analysis={record.analysis} />
       </>
     );
@@ -317,6 +380,7 @@ export function SummaryView({ meeting, record, live }: Props) {
           ? t('ext.summary.liveHint')
           : t('ext.summary.emptyHint')}
       </p>
+      <ContextCard meeting={meeting} />
       <button className="primary" onClick={regenerate} disabled={busy}>
         {busy
           ? t('ext.summary.processing')

@@ -178,8 +178,8 @@ export const id: Record<keyof typeof en, string> = {
   'ext.sidebar.expand': 'Buka sidebar',
 
   // -- extension: meeting header -------------------------------------------
-  'ext.header.agendaPlaceholder': 'Agenda rapat (opsional)',
-  'ext.header.agenda': 'Agenda rapat',
+  'ext.header.contextPlaceholder': 'Konteks & tujuan rapat (opsional)',
+  'ext.header.context': 'Konteks rapat',
   'ext.header.openActions': ' · {count} action item',
   'ext.header.openQuestions': ' · {count} pertanyaan',
 
@@ -281,6 +281,11 @@ export const id: Record<keyof typeof en, string> = {
   'ext.summary.emptyHint': 'Jalankan analisis AI untuk ringkasan, keputusan, dan action item.',
   'ext.summary.makeMom': 'Buat MoM sekarang',
   'ext.summary.generate': 'Generate sekarang',
+  'ext.summary.contextTitle': 'Konteks & Tujuan Rapat',
+  'ext.summary.contextHint': 'Tambahkan latar belakang atau tujuan rapat agar AI tidak berasumsi keliru.',
+  'ext.summary.contextPlaceholder': 'Contoh: Evaluasi sprint dengan klien ABC. Membahas kendala integrasi payment gateway dan target rilis.',
+  'ext.summary.contextSave': 'Simpan Konteks',
+  'ext.summary.contextSaved': 'Konteks disimpan.',
 
   // -- extension: ask -------------------------------------------------------
   'ext.ask.suggest1': 'Apa keputusan utama rapat ini?',
