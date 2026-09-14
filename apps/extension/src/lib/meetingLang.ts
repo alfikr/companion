@@ -31,3 +31,11 @@ export function saveMeetingLangPref(pref: MeetingLangPref): void {
 export async function loadMeetingLang(): Promise<Lang | null> {
   return resolveMeetingLang(await loadMeetingLangPref(), getLang());
 }
+
+/** A speech-to-text config with the meeting language attached, or unchanged
+ *  when the preference is to let the recognizer decide. Used by
+ *  `lib/transcribe.ts`. */
+export async function withMeetingLang<T extends object>(config: T): Promise<T & { language?: string }> {
+  const language = await loadMeetingLang();
+  return language ? { ...config, language } : config;
+}

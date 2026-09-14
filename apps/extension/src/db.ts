@@ -7,7 +7,7 @@ import {
 } from '@meetcc/store';
 import { retrieve } from '@meetcc/ai';
 import { t } from '@meetcc/shared/i18n';
-import { loadMeetingLang } from './lib/meetingLang';
+import { transcribeAudio } from './lib/transcribe';
 import {
   buildChronology,
   carryOverFor,
@@ -23,7 +23,6 @@ import {
   parseIcs,
   parseTranscript,
   runSync,
-  transcribeAudio,
   type CalendarEvent,
 } from '@meetcc/meeting';
 import {
@@ -249,7 +248,7 @@ export async function handleDb(req: DbRequest): Promise<unknown> {
       const text = await transcribeAudio(
         new Blob([bytes], { type: str(a.mime) || 'audio/mpeg' }),
         str(a.name) || 'audio.mp3',
-        { ...settings.integrations.transcription, language: (await loadMeetingLang()) ?? undefined },
+        settings.integrations.transcription,
       );
       if (!text.trim()) throw new Error(t('ext.err.emptyTranscription'));
       return handleDb({ op: 'import-transcript', args: { text, title: a.title, startedAt: a.startedAt } });
