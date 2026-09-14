@@ -48,12 +48,19 @@ loaded from:
 
 | browser  | id                                 |
 | -------- | ---------------------------------- |
-| Chromium | `pkgpllhlmhhocidmipbokpigndoeiemb` |
+| Chromium | `neeapigpheabagekbdfjdekgdicfckpn` |
 | Firefox  | `companion@suiflex.dev`            |
 
 That matters because your meetings live in `chrome.storage.local`, which is
 scoped to the id — without the pinned key, loading the same build from a
 different folder would hand you an empty dashboard.
+The Chromium id is also the Chrome Web Store item's id. If an older unpacked
+build used a different id, export its backup before switching builds and restore
+it after the switch; `chrome.storage.local` is scoped to the extension id and
+does not migrate automatically.
+If the desktop native-messaging host was registered by an older build, reconnect
+the desktop app or rerun the native-host install command so its Chrome
+`allowed_origins` entry is rewritten with this id.
 
 ### Terminal installer (no npm, no manual load)
 
@@ -360,11 +367,11 @@ id the browser loads the build under:
 
 ```bash
 # macOS / Linux (Chrome, or pass `firefox` for Firefox)
-apps/desktop/scripts/install-native-host.sh pkgpllhlmhhocidmipbokpigndoeiemb chrome
+apps/desktop/scripts/install-native-host.sh neeapigpheabagekbdfjdekgdicfckpn chrome
 apps/desktop/scripts/install-native-host.sh companion@suiflex.dev firefox
 
 # Windows (PowerShell, from the repo root)
-powershell -ExecutionPolicy Bypass -File apps/desktop/scripts/install-native-host.ps1 -ExtensionId pkgpllhlmhhocidmipbokpigndoeiemb -Channel chrome
+powershell -ExecutionPolicy Bypass -File apps/desktop/scripts/install-native-host.ps1 -ExtensionId neeapigpheabagekbdfjdekgdicfckpn -Channel chrome
 ```
 
 The installer bundles the host, copies it to a stable user path per OS

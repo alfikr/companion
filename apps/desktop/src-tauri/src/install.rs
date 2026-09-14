@@ -18,7 +18,7 @@ pub const HOST_NAME: &str = "dev.suiflex.companion";
 /// The extension id, pinned by the `key` in the extension's manifest. The
 /// manifest's `allowed_origins` has to name it exactly or the browser refuses
 /// the connection with a message about permissions rather than about ids.
-pub const EXTENSION_ID: &str = "pkgpllhlmhhocidmipbokpigndoeiemb";
+pub const EXTENSION_ID: &str = "neeapigpheabagekbdfjdekgdicfckpn";
 
 #[derive(Serialize, Clone)]
 pub struct Browser {

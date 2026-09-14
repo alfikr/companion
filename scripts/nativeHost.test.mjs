@@ -17,7 +17,7 @@ describe('extension id', () => {
   it('derives the id INSTALL.md documents from the pinned manifest key', () => {
     // If this ever drifts, every allowed_origins we write is wrong and the
     // browser refuses to launch the host — silently, from the extension's side.
-    expect(extensionIdFor(manifest, 'chromium')).toBe('pkgpllhlmhhocidmipbokpigndoeiemb');
+    expect(extensionIdFor(manifest, 'chromium')).toBe('neeapigpheabagekbdfjdekgdicfckpn');
   });
 
   it('maps each nibble onto a-p', () => {
