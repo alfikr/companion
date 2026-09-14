@@ -367,6 +367,55 @@ async function teamsEnableCc() {
   }
 }
 
+// --- meeting title from the page ---
+// Meet names the tab "Meet - <title>"; an instant meeting only has its code
+// there. Teams names it "<app section> | <title> | Microsoft Teams" and renames
+// it when the viewer moves to another Teams app (a chat shows a person's name),
+// so the title is read once, on the first captions tick — before that is
+// likely. Opening the in-meeting chat panel leaves it alone. Both formats hang
+// off brand names rather than localized labels. Verified on Meet and Teams
+// web, 2026-09.
+//
+// It only fills an empty `title:<id>`: a rename in the dashboard, or a capture
+// on an earlier join, always wins, and the AI-derived name (background.ts)
+// only fills a title that is still empty once the meeting is analysed.
+const MEET_CODE = /^[a-z]{3}-[a-z]{4}-[a-z]{3}$/
+let titleChecked = false
+
+function pageMeetingTitle() {
+  let raw = document.title
+  try {
+    raw = window.top.document.title // the call can run in a same-origin frame
+  } catch {
+    /* cross-origin top: this frame's own title is all there is */
+  }
+  raw = raw.replace(/^\(\d+\)\s*/, '').trim() // unread-count prefix
+  if (TEAMS) {
+    const parts = raw.split(' | ').map((p) => p.trim())
+    const shaped = parts.length >= 3 && parts[parts.length - 1] === 'Microsoft Teams'
+    return shaped ? parts[parts.length - 2] : ''
+  }
+  const title = raw.match(/^Meet\s*[-–—]\s*(.+)$/)?.[1]?.trim() ?? ''
+  return MEET_CODE.test(title) ? '' : title
+}
+
+function captureMeetingTitle() {
+  if (titleChecked || !meetingId || dead) return
+  titleChecked = true
+  const title = pageMeetingTitle().slice(0, 200)
+  if (!title) return
+  const key = `title:${meetingId}`
+  try {
+    chrome.storage.local.get(key, (r) => {
+      if (typeof r[key] === 'string' && r[key]) return // renamed, or captured on an earlier join
+      store({ [key]: title })
+      console.log(TAG, 'meeting title from the page:', title)
+    })
+  } catch {
+    die()
+  }
+}
+
 timers.push(
   setInterval(() => {
     if (dead) return
@@ -384,6 +433,7 @@ timers.push(
           die()
         }
       }
+      captureMeetingTitle()
       return
     }
     if (ccClicks >= 5) return // selector churned? stop before toggle-looping
