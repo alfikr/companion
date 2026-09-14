@@ -121,7 +121,7 @@ export const en = {
     '“Follow system” uses your browser’s language. This changes the interface only — meeting notes keep the language they were spoken in.',
   'ext.settings.meetingLanguage': 'Meeting language',
   'ext.settings.meetingLanguageHint':
-    'The language people speak in your meetings, separate from the interface language above. For now it is sent to speech-to-text when you import a recording; live captions still follow the language chosen inside Meet or Teams.',
+    'The language people speak in your meetings, separate from the interface language above. Google Meet captions switch to it when captions come on (only for you), and imported recordings send it to speech-to-text. Teams is left as is: its spoken language applies to everyone in the meeting.',
 
   // -- extension: provider panel -------------------------------------------
   'ext.provider.label': 'Provider',

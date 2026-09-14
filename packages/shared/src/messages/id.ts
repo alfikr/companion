@@ -117,7 +117,7 @@ export const id: Record<keyof typeof en, string> = {
     '“Ikut sistem” memakai bahasa browser. Ini hanya mengubah antarmuka — notulen rapat tetap memakai bahasa yang dipakai saat rapat.',
   'ext.settings.meetingLanguage': 'Bahasa rapat',
   'ext.settings.meetingLanguageHint':
-    'Bahasa yang diucapkan saat rapat, terpisah dari bahasa antarmuka di atas. Untuk sekarang dikirim ke speech-to-text saat mengimpor rekaman; caption live masih mengikuti bahasa yang dipilih di Meet atau Teams.',
+    'Bahasa yang diucapkan saat rapat, terpisah dari bahasa antarmuka di atas. Caption Google Meet otomatis pindah ke bahasa ini saat caption menyala (hanya untukmu), dan impor rekaman mengirimkannya ke speech-to-text. Teams tidak diubah: bahasa ucapannya berlaku untuk semua peserta rapat.',
 
   // -- extension: provider panel -------------------------------------------
   'ext.provider.label': 'Provider',
