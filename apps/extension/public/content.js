@@ -11,19 +11,42 @@ const TEAMS = /teams\.(microsoft\.com|live\.com|cloud\.microsoft)/.test(
 const TAG = TEAMS ? '[MeetCC:teams]' : '[MeetCC]'
 
 // This file ships as-is with no build step, so it cannot import the shared
-// catalogue. Its three visible strings get an inline copy instead, reading the
-// same `lang` storage key the rest of the extension writes. Keep these in step
-// with packages/shared/src/messages when they change.
+// catalogue. Its visible strings get an inline copy instead, reading the same
+// `lang` storage key the rest of the extension writes. Keep the two languages
+// in step with each other, and with packages/shared/src/messages when they
+// overlap.
 const MESSAGES = {
   en: {
     badge: 'Click: open or close the floating transcript (it follows you to other tabs and apps)',
     openInDashboard: 'Click: open this meeting in the dashboard',
     carryOver: '{count} items from the previous meeting are still open',
+    captionsWorking: 'Setting captions to {lang}…',
+    captionsUpdated: 'Captions: {lang} ✓',
+    captionsFailed: 'Could not set captions to {lang} — change it in Meet',
+    teamsSetLang: 'Set spoken language: {lang}',
+    teamsConfirm: 'Confirm in the Teams dialog — it applies to everyone',
+    teamsUpdated: 'Spoken language: {lang} ✓',
+    teamsCancelled: 'Spoken language not changed',
+    teamsLocked: 'Only the organizer can change the spoken language',
+    teamsFailed: 'Turn captions on first, or change it in Teams captions settings',
+    lang_id: 'Indonesian',
+    lang_en: 'English',
   },
   id: {
     badge: 'Klik: buka/tutup transcript mengambang (ikut ke tab/app lain)',
     openInDashboard: 'Klik: buka meeting ini di dashboard',
     carryOver: '{count} item dari rapat sebelumnya masih terbuka',
+    captionsWorking: 'Mengatur caption ke {lang}…',
+    captionsUpdated: 'Caption: {lang} ✓',
+    captionsFailed: 'Gagal mengatur caption ke {lang} — ubah di Meet',
+    teamsSetLang: 'Ubah bahasa ucapan: {lang}',
+    teamsConfirm: 'Konfirmasi di dialog Teams — berlaku untuk semua peserta',
+    teamsUpdated: 'Bahasa ucapan: {lang} ✓',
+    teamsCancelled: 'Bahasa ucapan tidak diubah',
+    teamsLocked: 'Hanya penyelenggara yang bisa mengubah bahasa ucapan',
+    teamsFailed: 'Nyalakan caption dulu, atau ubah di setelan caption Teams',
+    lang_id: 'Indonesia',
+    lang_en: 'Inggris',
   },
 }
 
@@ -59,6 +82,9 @@ try {
       MEETING_LANG_PREF = changes.meetingLang.newValue ?? 'keep'
       captionLangSettled = false // a new choice gets applied once more
       captionLangTries = 0
+      langDone = false // the badge offers / reports it again
+      langNote = null
+      teamsAutoTried = false
     }
   })
 } catch {
@@ -433,8 +459,8 @@ function captureMeetingTitle() {
 // Indonesian meeting under the English default captions as garbled English
 // and every downstream note inherits it. Meet's choice is per viewer ("the
 // captions are turned on only for you"), which is what makes setting it
-// without asking acceptable. Teams is deliberately left alone: its spoken
-// language applies to everyone in the meeting.
+// without asking acceptable. Teams gets a confirmation-gated button instead
+// (below): its spoken language applies to everyone in the meeting.
 //
 // Hook: the option's `data-value` is a BCP-47 tag that does not follow the
 // UI language, unlike every label around it. The options are mounted once
@@ -449,13 +475,14 @@ let captionLangSettled = false
 let captionLangTries = 0
 let captionLangBusy = false
 
+/** 'id' | 'en', or null for "Don't change" (and anything unrecognised). */
+function wantedMeetingLang() {
+  if (MEETING_LANG_PREF === 'ui') return LANG
+  return MEETING_LANG_PREF === 'id' || MEETING_LANG_PREF === 'en' ? MEETING_LANG_PREF : null
+}
+
 function wantedCaptionLang() {
-  const lang =
-    MEETING_LANG_PREF === 'ui'
-      ? LANG
-      : MEETING_LANG_PREF === 'id' || MEETING_LANG_PREF === 'en'
-        ? MEETING_LANG_PREF
-        : null // 'keep', or anything unrecognised
+  const lang = wantedMeetingLang()
   return lang ? MEET_CAPTION_LANG[lang] : null
 }
 
@@ -477,6 +504,7 @@ async function meetApplyCaptionLang() {
   const option = options[0]
   if (option.getAttribute('aria-selected') === 'true') {
     captionLangSettled = true
+    reportLangStatus('already')
     return
   }
 
@@ -488,6 +516,7 @@ async function meetApplyCaptionLang() {
 
   captionLangBusy = true
   captionLangTries++
+  reportLangStatus('working')
   try {
     combobox.click()
     await sleep(400)
@@ -498,13 +527,206 @@ async function meetApplyCaptionLang() {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     if (document.querySelector(`${selector}[aria-selected="true"]`)) {
       captionLangSettled = true
+      reportLangStatus('updated')
       console.log(TAG, 'caption language set to', tag)
     } else {
       console.warn(TAG, 'caption language: could not select', tag, '— attempt', captionLangTries)
+      if (captionLangTries >= 3) reportLangStatus('failed')
     }
   } finally {
     captionLangBusy = false
   }
+}
+
+// --- badge: what is happening to the caption language ---
+// Both platforms report here so the viewer sees that captions are being set
+// to the Meeting language, and how it went. Reports travel to the top frame,
+// where the badge lives; a pending note expires on its own so a vanished
+// menu cannot leave the badge stuck. On Teams the same element doubles as the
+// "set spoken language" button when there is nothing to report.
+const LANG_NOTE = {
+  working: 'captionsWorking',
+  confirm: 'teamsConfirm',
+  updated: TEAMS ? 'teamsUpdated' : 'captionsUpdated',
+  already: TEAMS ? 'teamsUpdated' : 'captionsUpdated',
+  cancelled: 'teamsCancelled',
+  locked: 'teamsLocked',
+  failed: TEAMS ? 'teamsFailed' : 'captionsFailed',
+}
+let langDone = false
+let langNote = null // { key, until }
+
+const reportLangStatus = (status) => window.top.postMessage({ __meetcc: 'lang-status', status }, '*')
+
+const langInProgress = () =>
+  !!langNote && Date.now() < langNote.until && (langNote.key === LANG_NOTE.working || langNote.key === LANG_NOTE.confirm)
+
+function onLangStatus(status) {
+  if (status === 'idle') {
+    langNote = null // an automatic attempt gave up quietly
+    teamsLangBusy = false
+    return
+  }
+  const key = LANG_NOTE[status]
+  if (!key) return
+  const pending = status === 'working' || status === 'confirm'
+  langNote = { key, until: Date.now() + (pending ? 300_000 : 5000) }
+  if (pending) return
+  teamsLangBusy = false
+  langDone = status === 'updated' || status === 'already'
+  console.log(TAG, 'caption language:', status)
+}
+
+function renderLangBadge(el) {
+  const lang = wantedMeetingLang()
+  const noting = !!langNote && Date.now() < langNote.until
+  // Meet has nothing to click, so its note only shows while there is news
+  el.hidden = !lang || (TEAMS ? langDone && !noting : !noting)
+  if (lang) el.textContent = T(noting ? langNote.key : 'teamsSetLang', { lang: T(`lang_${lang}`) })
+}
+
+if (TOP) {
+  addEventListener('message', (e) => {
+    if (e.data?.__meetcc === 'lang-status') onLangStatus(e.data.status)
+  })
+}
+
+// --- Teams: offer to switch the meeting's spoken language ---
+// Unlike Meet, Teams' spoken language applies to everyone in the meeting, so
+// it never changes without the user. With a Meeting language set, once
+// captions are on this opens captions settings → Meeting spoken language and
+// picks the option, which makes Teams ask "Is this the language that everyone
+// is speaking?". The user answers that dialog; this code never clicks Update.
+// It asks once per page, only while the page has focus and nobody is typing
+// (an Enter meant for the chat must not confirm it). The badge button runs the
+// same flow on demand, e.g. after a Cancel.
+//
+// Hooks are Microsoft's data-tid test attributes. Options carry the locale in
+// lowercase (`…-spoken-language-id-id`); recently used ones repeat under a
+// `saved-` prefix, and only that copy is marked aria-checked. The menus close
+// the moment the page loses focus. Verified on Teams web as organizer, 2026-09.
+//
+// The badge lives in the top frame but the call can sit in an iframe, so the
+// request is posted to every frame and handled by whichever holds the
+// captions settings button.
+const TEAMS_SPOKEN_LANG = { id: 'id-id', en: 'en-us' }
+const TEAMS_CC_SETTINGS = 'button[data-tid="closed-captions-settings-menu-trigger-button"]'
+const TEAMS_SPOKEN_ITEM = '[role="menuitem"][data-tid="captions-settings-redesign-spoken-language"]'
+const TEAMS_SPOKEN_PREFIX = 'captions-settings-redesign-spoken-language-'
+const TEAMS_CONFIRM = 'confirm-spoken-language-change-dialog'
+let teamsLangBusy = false
+let teamsAutoTried = false
+let teamsFlowRunning = false
+
+const closeTeamsMenu = () =>
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+
+const teamsLocaleChecked = (locale) =>
+  [...document.querySelectorAll(`[role="menuitemradio"][data-tid^="${TEAMS_SPOKEN_PREFIX}"][aria-checked="true"]`)].some(
+    (el) => el.getAttribute('data-tid').slice(TEAMS_SPOKEN_PREFIX.length).replace(/^saved-/, '') === locale,
+  )
+
+// Captions settings → Meeting spoken language: 'open', 'locked' or 'failed'.
+async function teamsOpenSpokenMenu() {
+  const trigger = document.querySelector(TEAMS_CC_SETTINGS)
+  if (!trigger) return 'failed'
+  if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click()
+  await sleep(600)
+  const item = document.querySelector(TEAMS_SPOKEN_ITEM)
+  if (!item) return 'failed'
+  if (item.getAttribute('aria-disabled') === 'true') return 'locked'
+  item.click()
+  await sleep(600)
+  return 'open'
+}
+
+// Enter on the focused Update button fires its click too, so one listener
+// tells an update from a cancel or close.
+async function teamsAwaitAnswer(report, focusUpdate) {
+  const dialog = document.querySelector(`[data-tid="${TEAMS_CONFIRM}"]`)
+  if (!dialog) return 'failed'
+  const update = dialog.querySelector(`[data-tid="${TEAMS_CONFIRM}-update-button"]`)
+  let confirmed = false
+  update?.addEventListener('click', () => (confirmed = true), { once: true })
+  if (focusUpdate) update?.focus() // only right after the user clicked our button
+  report('confirm')
+  for (let i = 0; i < 600 && document.querySelector(`[data-tid="${TEAMS_CONFIRM}"]`); i++) {
+    await sleep(500) // up to five minutes for an answer
+  }
+  return confirmed ? 'updated' : 'cancelled'
+}
+
+async function teamsPickSpokenLanguage(locale, report, focusUpdate) {
+  const menu = await teamsOpenSpokenMenu()
+  const option = document.querySelector(`[role="menuitemradio"][data-tid="${TEAMS_SPOKEN_PREFIX}${locale}"]`)
+  if (menu !== 'open' || !option) {
+    closeTeamsMenu()
+    return menu === 'open' ? 'failed' : menu
+  }
+  if (teamsLocaleChecked(locale) || option.getAttribute('aria-disabled') === 'true') {
+    closeTeamsMenu()
+    return teamsLocaleChecked(locale) ? 'already' : 'locked'
+  }
+  option.click()
+  await sleep(800)
+  return teamsAwaitAnswer(report, focusUpdate)
+}
+
+// One flow at a time per frame: the automatic ask and the badge button share it.
+async function teamsSetSpokenLanguage(locale, report, focusUpdate) {
+  if (teamsFlowRunning) return null
+  teamsFlowRunning = true
+  try {
+    return await teamsPickSpokenLanguage(locale, report, focusUpdate)
+  } finally {
+    teamsFlowRunning = false
+  }
+}
+
+const isTyping = () => {
+  const el = document.activeElement
+  return !!el && (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
+}
+
+// Runs from the captions tick in the frame that holds the captions UI.
+async function teamsAutoPrompt() {
+  const lang = wantedMeetingLang()
+  if (!lang || teamsAutoTried || teamsFlowRunning) return
+  if (!document.hasFocus() || isTyping() || !document.querySelector(TEAMS_CC_SETTINGS)) return // next tick
+  teamsAutoTried = true
+  reportLangStatus('working')
+  const status = await teamsSetSpokenLanguage(TEAMS_SPOKEN_LANG[lang], reportLangStatus, false)
+  if (status && status !== 'failed') return reportLangStatus(status)
+  // a failed automatic attempt only logs: the badge button is still there
+  reportLangStatus('idle')
+  if (status === 'failed') console.warn(TAG, 'spoken language: automatic ask did not reach the Teams menu')
+}
+
+// Top frame: the badge button asks every frame; one of them answers.
+function requestTeamsLang() {
+  const lang = wantedMeetingLang()
+  // the automatic ask may be working, or have Teams' dialog on screen already
+  if (!lang || teamsLangBusy || langInProgress()) return
+  teamsLangBusy = true
+  onLangStatus('working')
+  const msg = { __meetcc: 'teams-set-lang', locale: TEAMS_SPOKEN_LANG[lang] }
+  window.postMessage(msg, '*')
+  for (let i = 0; i < window.frames.length; i++) window.frames[i].postMessage(msg, '*')
+  // no frame holds the captions settings button: nobody answers
+  setTimeout(() => {
+    if (teamsLangBusy && langNote?.key === LANG_NOTE.working) onLangStatus('failed')
+  }, 5000)
+}
+
+if (TEAMS) {
+  // every frame: act only for the top frame, and only where the menu lives
+  addEventListener('message', async (e) => {
+    const d = e.data
+    if (!d || d.__meetcc !== 'teams-set-lang' || e.source !== window.top) return
+    if (!/^[a-z]{2,3}-[a-z]{2}$/.test(d.locale) || !document.querySelector(TEAMS_CC_SETTINGS)) return
+    const status = await teamsSetSpokenLanguage(d.locale, reportLangStatus, true)
+    if (status) reportLangStatus(status) // null: the automatic ask is already on screen
+  })
 }
 
 timers.push(
@@ -525,7 +747,7 @@ timers.push(
         }
       }
       captureMeetingTitle()
-      if (!TEAMS) void meetApplyCaptionLang()
+      void (TEAMS ? teamsAutoPrompt() : meetApplyCaptionLang())
       return
     }
     if (ccClicks >= 5) return // selector churned? stop before toggle-looping
@@ -682,11 +904,24 @@ if (TOP) {
     '<span style="color:#8b95a9;font-size:9px">powered by suiflex</span>'
   badgeLabel = badge.querySelector('#mcc-label')
   badge.onclick = togglePip
+  // caption-language status; on Teams also the "set spoken language" button
+  const langBadge = document.createElement('span')
+  langBadge.hidden = true
+  langBadge.style.cssText =
+    'color:#0f131b;background:#46e394;border-radius:8px;padding:0 6px' + (TEAMS ? ';cursor:pointer' : '')
+  if (TEAMS) {
+    langBadge.onclick = (e) => {
+      e.stopPropagation() // the badge itself toggles the floating transcript
+      requestTeamsLang()
+    }
+  }
+  badge.append(langBadge)
   document.documentElement.appendChild(badge)
   timers.push(
     setInterval(() => {
       if (dead) return // die() owns the badge once the context is gone
       badgeLabel.textContent = `MeetCC ${pipWin && !pipWin.closed ? '▣' : '✓'} ${entries.length}`
+      renderLangBadge(langBadge)
     }, 1000),
   )
 
