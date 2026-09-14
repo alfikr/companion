@@ -202,7 +202,8 @@ Five things to know before touching it:
 - **Three runtimes, three mechanisms.** The React UIs import `t()`. The
   service worker is its own context and reads the `lang` storage key itself at
   startup. `public/content.js` ships unbundled and cannot import at all, so it
-  carries a small inline copy of its own three strings — keep them in step.
+  carries a small inline `MESSAGES` table of its own strings in both
+  languages — keep them in step.
 - **`t()` reads a module-level language, which React cannot see changing.**
   Each app's root subscribes with `onLangChange` and re-renders. A label map
   frozen at module load keeps whatever language was current when the file was
