@@ -33,7 +33,9 @@ jobs:
 
       - name: Read extension version
         id: meta
-        run: echo "version=$(node -p \"require('./apps/extension/public/manifest.json').version\")" >> "$GITHUB_OUTPUT"
+        run: |
+          version="$(node -p "require('./apps/extension/public/manifest.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Publish to Chrome Web Store
         uses: mnao305/chrome-extension-upload@4008e29e13c144d0f6725462cbd49b7c291b4928 # v5.0.0
