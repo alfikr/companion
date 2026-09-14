@@ -311,6 +311,22 @@ Widi: halo juga
     expect(parseTranscript(text, { startedAt: at(0) })[0].text).toBe('halo semua');
   });
 
+  it('sends the meeting language only when one is set', async () => {
+    const bodies: FormData[] = [];
+    const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
+      bodies.push(init.body as FormData);
+      return new Response(JSON.stringify({ text: 'halo semua' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const config = { endpoint: 'https://asr.example.com/v1/audio/transcriptions', apiKey: '', model: 'whisper-1' };
+
+    await transcribeAudio(new Blob(['x']), 'a.mp3', { ...config, language: 'id' }, fetchImpl);
+    await transcribeAudio(new Blob(['x']), 'a.mp3', config, fetchImpl);
+
+    expect(bodies[0].get('language')).toBe('id');
+    // no key at all, not an empty one: an empty `language` is rejected by some servers
+    expect(bodies[1].has('language')).toBe(false);
+  });
+
   it('uses the diarized speaker when the endpoint provides one', () => {
     const labelled = labelSpeakers([
       { start: 0, text: 'halo semua', speaker: 'Rina' },

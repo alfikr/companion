@@ -7,6 +7,7 @@ import {
 } from '@meetcc/store';
 import { retrieve } from '@meetcc/ai';
 import { t } from '@meetcc/shared/i18n';
+import { transcribeAudio } from './lib/transcribe';
 import {
   buildChronology,
   carryOverFor,
@@ -22,7 +23,6 @@ import {
   parseIcs,
   parseTranscript,
   runSync,
-  transcribeAudio,
   type CalendarEvent,
 } from '@meetcc/meeting';
 import {

@@ -129,6 +129,9 @@ export interface TranscriptionConfig {
   endpoint: string;
   apiKey: string;
   model: string;
+  /** ISO-639-1 spoken language (`id`, `en`). Omitted, the endpoint detects it
+   *  itself, which is unreliable on short or mixed-language recordings. */
+  language?: string;
 }
 
 /**
@@ -146,6 +149,7 @@ export async function transcribeAudio(
   const form = new FormData();
   form.append('file', file, filename);
   form.append('model', config.model || 'whisper-1');
+  if (config.language) form.append('language', config.language);
   form.append('response_format', 'verbose_json');
   const res = await fetchImpl(config.endpoint, {
     method: 'POST',
