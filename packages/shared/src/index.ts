@@ -8,3 +8,4 @@ export * from './migrate';
 export * from './aggregate';
 export * from './update';
 export * from './backup';
+export * from './meetingLang';

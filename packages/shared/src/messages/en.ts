@@ -100,6 +100,8 @@ export const en = {
   'pref.dark': 'Dark',
   'lang.en': 'English',
   'lang.id': 'Indonesian',
+  'meetingLang.keep': 'Don’t change (auto-detect)',
+  'meetingLang.ui': 'Follow interface language',
 
   // -- extension: settings shell -------------------------------------------
   'ext.settings.title': 'Settings',
@@ -117,6 +119,9 @@ export const en = {
   'ext.settings.language': 'Language',
   'ext.settings.languageHint':
     '“Follow system” uses your browser’s language. This changes the interface only — meeting notes keep the language they were spoken in.',
+  'ext.settings.meetingLanguage': 'Meeting language',
+  'ext.settings.meetingLanguageHint':
+    'The language people speak in your meetings, separate from the interface language above. For now it is sent to speech-to-text when you import a recording; live captions still follow the language chosen inside Meet or Teams.',
 
   // -- extension: provider panel -------------------------------------------
   'ext.provider.label': 'Provider',

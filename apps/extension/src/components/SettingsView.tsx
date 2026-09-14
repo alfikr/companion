@@ -8,6 +8,7 @@ import {
   validateSettings,
 } from '@meetcc/ai';
 import {
+  MEETING_LANG_PREFS,
   RETENTION_OPTIONS,
   loadSettings,
   saveSettings,
@@ -21,6 +22,7 @@ import { DataPanel, IntegrationsPanel, TemplatesPanel } from './SettingsPanels';
 import { SignInPanel } from './SignInPanel';
 import { t, LANGS, type LangPref } from '@meetcc/shared/i18n';
 import { applyLang, loadLangPref, saveLangPref } from '../lib/lang';
+import { loadMeetingLangPref, saveMeetingLangPref, type MeetingLangPref } from '../lib/meetingLang';
 
 type Panel = 'provider' | 'integrations' | 'templates' | 'data';
 
@@ -35,6 +37,9 @@ const PANEL_LABEL: Record<Panel, Parameters<typeof t>[0]> = {
 
 const langLabel = (p: LangPref): string =>
   p === 'system' ? t('pref.system') : p === 'en' ? t('lang.en') : t('lang.id');
+
+const meetingLangLabel = (p: MeetingLangPref): string =>
+  p === 'keep' ? t('meetingLang.keep') : p === 'ui' ? t('meetingLang.ui') : langLabel(p);
 
 const PROVIDERS = Object.entries(PROVIDER_PRESETS) as [
   ProviderId,
@@ -52,6 +57,10 @@ export function SettingsView({
   const [langPref, setLangPref] = useState<LangPref>('system');
   useEffect(() => {
     void loadLangPref().then(setLangPref);
+  }, []);
+  const [meetingLangPref, setMeetingLangPref] = useState<MeetingLangPref>('keep');
+  useEffect(() => {
+    void loadMeetingLangPref().then(setMeetingLangPref);
   }, []);
   const [testing, setTesting] = useState(false);
   const [panel, setPanel] = useState<Panel>('provider');
@@ -251,6 +260,27 @@ export function SettingsView({
             ))}
           </select>
           <span className="hint">{t('ext.settings.languageHint')}</span>
+        </label>
+
+        <label className="field">
+          <span>{t('ext.settings.meetingLanguage')}</span>
+          {/* Persisted on change beside `lang`, for the same reason: it is not a
+              secret, and the content script has to be able to read it. */}
+          <select
+            value={meetingLangPref}
+            onChange={(e) => {
+              const next = e.target.value as MeetingLangPref;
+              setMeetingLangPref(next);
+              saveMeetingLangPref(next);
+            }}
+          >
+            {MEETING_LANG_PREFS.map((l) => (
+              <option key={l} value={l}>
+                {meetingLangLabel(l)}
+              </option>
+            ))}
+          </select>
+          <span className="hint">{t('ext.settings.meetingLanguageHint')}</span>
         </label>
 
         <label className="field">
