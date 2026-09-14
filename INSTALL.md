@@ -58,6 +58,9 @@ The Chromium id is also the Chrome Web Store item's id. If an older unpacked
 build used a different id, export its backup before switching builds and restore
 it after the switch; `chrome.storage.local` is scoped to the extension id and
 does not migrate automatically.
+If the desktop native-messaging host was registered by an older build, reconnect
+the desktop app or rerun the native-host install command so its Chrome
+`allowed_origins` entry is rewritten with this id.
 
 ### Terminal installer (no npm, no manual load)
 
