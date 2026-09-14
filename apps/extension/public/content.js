@@ -42,12 +42,24 @@ const pickLang = (pref) => {
   return primary ?? 'en'
 }
 
+// The dashboard's "Meeting language": what people speak, not the interface
+// language above. Same flat-key arrangement as `lang` — see
+// packages/shared/src/meetingLang.ts, which this mirrors.
+let MEETING_LANG_PREF = 'keep'
+
 try {
-  chrome.storage.local.get('lang', ({ lang }) => {
+  chrome.storage.local.get(['lang', 'meetingLang'], ({ lang, meetingLang }) => {
     LANG = pickLang(lang)
+    MEETING_LANG_PREF = meetingLang ?? 'keep'
   })
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.lang) LANG = pickLang(changes.lang.newValue)
+    if (area !== 'local') return
+    if (changes.lang) LANG = pickLang(changes.lang.newValue)
+    if (changes.meetingLang) {
+      MEETING_LANG_PREF = changes.meetingLang.newValue ?? 'keep'
+      captionLangSettled = false // a new choice gets applied once more
+      captionLangTries = 0
+    }
   })
 } catch {
   /* no storage access — English is the default and still correct */
@@ -416,6 +428,85 @@ function captureMeetingTitle() {
   }
 }
 
+// --- Meet: caption language follows the "Meeting language" setting ---
+// Meet recognises speech in whatever caption language is selected, so an
+// Indonesian meeting under the English default captions as garbled English
+// and every downstream note inherits it. Meet's choice is per viewer ("the
+// captions are turned on only for you"), which is what makes setting it
+// without asking acceptable. Teams is deliberately left alone: its spoken
+// language applies to everyone in the meeting.
+//
+// Hook: the option's `data-value` is a BCP-47 tag that does not follow the
+// UI language, unlike every label around it. The options are mounted once
+// captions are on, without opening caption settings; a plain click on the
+// combobox and then the option switches it, with no confirmation dialog.
+// Verified on Meet web, 2026-09.
+//
+// Applied once per page (and again after the setting changes): a viewer who
+// switches back by hand mid-meeting keeps their choice.
+const MEET_CAPTION_LANG = { id: 'id-ID', en: 'en-US' }
+let captionLangSettled = false
+let captionLangTries = 0
+let captionLangBusy = false
+
+function wantedCaptionLang() {
+  const lang =
+    MEETING_LANG_PREF === 'ui'
+      ? LANG
+      : MEETING_LANG_PREF === 'id' || MEETING_LANG_PREF === 'en'
+        ? MEETING_LANG_PREF
+        : null // 'keep', or anything unrecognised
+  return lang ? MEET_CAPTION_LANG[lang] : null
+}
+
+async function meetApplyCaptionLang() {
+  const tag = wantedCaptionLang()
+  if (!tag || captionLangSettled || captionLangBusy) return
+  if (captionLangTries >= 3) return // Meet moved things: stop, capture carries on
+
+  const selector = `[role="listbox"] li[role="option"][data-value="${tag}"]`
+  const options = document.querySelectorAll(selector)
+  if (!options.length) return // caption settings not mounted yet — next tick
+  if (options.length > 1) {
+    // e.g. a translated-captions target list offering the same tags: never
+    // guess which list is which
+    captionLangSettled = true
+    console.warn(TAG, 'caption language: more than one list offers', tag, '— leaving it alone.')
+    return
+  }
+  const option = options[0]
+  if (option.getAttribute('aria-selected') === 'true') {
+    captionLangSettled = true
+    return
+  }
+
+  let combobox = null
+  for (let n = option.closest('[role="listbox"]')?.parentElement; n && !combobox; n = n.parentElement) {
+    combobox = n.querySelector('[role="combobox"]')
+  }
+  if (!combobox) return
+
+  captionLangBusy = true
+  captionLangTries++
+  try {
+    combobox.click()
+    await sleep(400)
+    option.click()
+    await sleep(800)
+    // Meet leaves focus on the closed menu, which Chrome then reports as
+    // focus hidden under aria-hidden
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    if (document.querySelector(`${selector}[aria-selected="true"]`)) {
+      captionLangSettled = true
+      console.log(TAG, 'caption language set to', tag)
+    } else {
+      console.warn(TAG, 'caption language: could not select', tag, '— attempt', captionLangTries)
+    }
+  } finally {
+    captionLangBusy = false
+  }
+}
+
 timers.push(
   setInterval(() => {
     if (dead) return
@@ -434,6 +525,7 @@ timers.push(
         }
       }
       captureMeetingTitle()
+      if (!TEAMS) void meetApplyCaptionLang()
       return
     }
     if (ccClicks >= 5) return // selector churned? stop before toggle-looping
