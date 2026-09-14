@@ -315,6 +315,9 @@ a.icon-btn {
 
 /* the meeting name doubles as its own rename control */
 .title-btn {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   margin: 0;
   padding: 2px 4px;
   border: 1px solid transparent;
@@ -325,14 +328,35 @@ a.icon-btn {
   cursor: text;
   max-width: 46ch;
   white-space: nowrap;
+}
+
+/* the ellipsis lives on the text, so a long name never hides the pencil */
+.title-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* a quiet pencil: renaming was only discoverable by hovering before */
+.title-btn::after {
+  content: '✎';
+  content: '✎' / '';
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.6;
 }
 
 .title-btn:hover,
 .title-btn:focus-visible {
   border-color: var(--hairline-2);
   background: var(--panel-2);
+}
+
+.title-btn:hover::after,
+.title-btn:focus-visible::after {
+  opacity: 1;
+  color: var(--phosphor);
 }
 
 .title-input {

@@ -82,7 +82,7 @@ function MeetingTitle({ id, title }: { id: string; title: string }) {
   return (
     <h1>
       <button className="title-btn" title={t('ext.meeting.rename', { id })} onClick={() => setEditing(true)}>
-        {title || displayMeetingId(id)}
+        <span className="title-text">{title || displayMeetingId(id)}</span>
       </button>
     </h1>
   );
