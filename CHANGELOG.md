@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.13.0](https://github.com/suiflex/companion/compare/v1.12.0...v1.13.0) (2026-09-14)
+
+
+### Features
+
+* **ai,shared:** add meeting context support for storage and AI prompts ([0874590](https://github.com/suiflex/companion/commit/08745909e6af28308ab1a2a8dbcc5192cfeffd73))
+* **capture:** name meetings from the Meet or Teams page title ([011d17b](https://github.com/suiflex/companion/commit/011d17bf72f401b7a9640fefa711a1837d5830e2))
+* **capture:** name meetings from the Meet or Teams page title ([e5c11ba](https://github.com/suiflex/companion/commit/e5c11ba8606e8fcea384e249f79da369eff8009a))
+* **capture:** prompt to switch the Teams spoken language to the meeting language ([393d692](https://github.com/suiflex/companion/commit/393d6926619b542adc59d44b6d5feb8f61fa1491))
+* **capture:** prompt to switch the Teams spoken language to the meeting language ([1bd0259](https://github.com/suiflex/companion/commit/1bd02590f0b6b8219675d5d1009608ab9c3772a2)), closes [#66](https://github.com/suiflex/companion/issues/66)
+* **capture:** set Meet caption language from the meeting language setting ([7a96a55](https://github.com/suiflex/companion/commit/7a96a55e08ae11d3101340bd4fe7496a5c574d75))
+* **capture:** set Meet caption language from the meeting language setting ([75cd652](https://github.com/suiflex/companion/commit/75cd652f59e7dc3ab04d956b4d7213a4554f08a7)), closes [#66](https://github.com/suiflex/companion/issues/66)
+* **extension:** add a meeting language setting for audio import ([94dd371](https://github.com/suiflex/companion/commit/94dd371814c979f31d2bb9759a57ebf6fac8ec53))
+* **extension:** add a meeting language setting for audio import ([b840965](https://github.com/suiflex/companion/commit/b8409657940fbd1a74a47a1e3fd866004cecf5ee)), closes [#66](https://github.com/suiflex/companion/issues/66)
+* **extension:** add meeting context input during meeting and before MoM ([8d5c53f](https://github.com/suiflex/companion/commit/8d5c53f8236e148fc4a9f5aada504d3baf2798ba))
+* **extension:** add meeting context input during meeting and before MoM ([fa5bcf0](https://github.com/suiflex/companion/commit/fa5bcf0e395eb0bcddb02cb5392e8b0df248746b))
+
 ## [1.12.0](https://github.com/suiflex/companion/compare/v1.11.0...v1.12.0) (2026-09-12)
 
 
