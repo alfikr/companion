@@ -18,7 +18,7 @@ import type { Vault, VaultNote } from '@meetcc/vault'
  * scripts/nativeHost.mjs computes it, and MeetingMeta.test.ts checks this
  * string still matches the manifest.
  */
-export const EXTENSION_ID = 'pkgpllhlmhhocidmipbokpigndoeiemb'
+export const EXTENSION_ID = 'neeapigpheabagekbdfjdekgdicfckpn'
 
 /** `room#2026-09-04T10:00` → `room`, which is the extension's meeting id. */
 export function roomIdOf(sessionKey: string): string {
