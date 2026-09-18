@@ -69,15 +69,19 @@ const pickLang = (pref) => {
 // language above. Same flat-key arrangement as `lang` — see
 // packages/shared/src/meetingLang.ts, which this mirrors.
 let MEETING_LANG_PREF = 'keep'
+// Settings > "Auto-enable captions"; off leaves CC to the user.
+let AUTO_CAPTIONS = true
 
 try {
-  chrome.storage.local.get(['lang', 'meetingLang'], ({ lang, meetingLang }) => {
+  chrome.storage.local.get(['lang', 'meetingLang', 'autoCaptions'], ({ lang, meetingLang, autoCaptions }) => {
     LANG = pickLang(lang)
+    AUTO_CAPTIONS = autoCaptions !== false
     MEETING_LANG_PREF = meetingLang ?? 'keep'
   })
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return
     if (changes.lang) LANG = pickLang(changes.lang.newValue)
+    if (changes.autoCaptions) AUTO_CAPTIONS = changes.autoCaptions.newValue !== false
     if (changes.meetingLang) {
       MEETING_LANG_PREF = changes.meetingLang.newValue ?? 'keep'
       captionLangSettled = false // a new choice gets applied once more
@@ -766,6 +770,7 @@ timers.push(
     }
     if (ccWasOn && inCallToolbar()) ccUserOff = true
     if (ccUserOff) return // user turned captions off: leave them off
+    if (!AUTO_CAPTIONS) return // disabled in Settings
     if (ccClicks >= 5) return // selector churned? stop before toggle-looping
     if (TEAMS) {
       void teamsEnableCc()

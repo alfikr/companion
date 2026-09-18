@@ -62,6 +62,14 @@ export function SettingsView({
   useEffect(() => {
     void loadMeetingLangPref().then(setMeetingLangPref);
   }, []);
+  // Flat storage key like `meetingLang`: the content script reads it directly.
+  const [autoCaptions, setAutoCaptions] = useState(true);
+  useEffect(() => {
+    chrome.storage.local
+      .get('autoCaptions')
+      .then(({ autoCaptions: v }) => setAutoCaptions(v !== false))
+      .catch(() => {});
+  }, []);
   const [testing, setTesting] = useState(false);
   const [panel, setPanel] = useState<Panel>('provider');
   const [models, setModels] = useState<string[]>([]);
@@ -281,6 +289,19 @@ export function SettingsView({
             ))}
           </select>
           <span className="hint">{t('ext.settings.meetingLanguageHint')}</span>
+        </label>
+
+        <label className="field checkbox-field">
+          <input
+            type="checkbox"
+            checked={autoCaptions}
+            onChange={(e) => {
+              setAutoCaptions(e.target.checked);
+              void chrome.storage.local.set({ autoCaptions: e.target.checked }).catch(() => {});
+            }}
+          />
+          <span>{t('ext.settings.autoCaptions')}</span>
+          <span className="hint">{t('ext.settings.autoCaptionsHint')}</span>
         </label>
 
         <label className="field">
