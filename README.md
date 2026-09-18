@@ -17,6 +17,8 @@
 <p align="center">
   <a href="https://chromewebstore.google.com/detail/meet-companion/neeapigpheabagekbdfjdekgdicfckpn"><img src="assets/badges/chrome-web-store.svg" alt="Available in the Chrome Web Store" height="54"></a>
   <a href="https://addons.mozilla.org/en-US/firefox/addon/meet-companion/"><img src="assets/badges/firefox-addon.svg" alt="Get the add-on Firefox Browser" height="54"></a>
+  <br>
+  <sub><i>Chrome Web Store listing is currently pending Google verification. In the meantime, download the latest Chromium build directly below.</i></sub>
 </p>
 
 <p align="center">
@@ -35,13 +37,18 @@ Two products, released together on one tag. Take one or both — neither needs t
 
 | | Latest | What you get |
 |---|---|---|
-| **Extension** | [Releases · `v*`](https://github.com/suiflex/companion/releases?q=%22Meet+Companion%22) | `meetcc-extension-v*.zip` (Chromium), `meetcc-extension-firefox-v*.zip` |
+| **Extension (Chromium)** | [Latest Release · `meetcc-extension-v*.zip`](https://github.com/suiflex/companion/releases/latest) | `meetcc-extension-v*.zip` (Chrome, Edge, Brave, Arc) |
+| **Extension (Firefox)** | [addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/meet-companion/) · [Releases](https://github.com/suiflex/companion/releases/latest) | Automatic updates via AMO, or `meetcc-extension-firefox-v*.zip` |
 | **Companion Desktop** | [Releases · `v*`](https://github.com/suiflex/companion/releases?q=%22Meet+Companion%22) | `companion-desktop-<target-triple>` as `.dmg` / `.app.tar.gz` (macOS), `.AppImage` / `.deb` / `.rpm` (Linux), `.msi` / `-setup.exe` (Windows) |
 
 The extension is easiest through the terminal installer below, which also keeps
 it updated. Firefox users get it from
 [addons.mozilla.org](https://addons.mozilla.org/en-US/firefox/addon/meet-companion/),
 where Firefox handles updates itself.
+
+> **Manual Chrome / Chromium installation**:
+> 1. Download `meetcc-extension-v*.zip` from the [latest release](https://github.com/suiflex/companion/releases/latest) and unzip it.
+> 2. Open `chrome://extensions` (or `edge://extensions`, `brave://extensions`), toggle **Developer mode** on, click **Load unpacked**, and select the extracted directory.
 
 > **The desktop builds are not code-signed yet.** macOS refuses a downloaded
 > app on first launch — on macOS 15 and newer the dialog offers only *Move to

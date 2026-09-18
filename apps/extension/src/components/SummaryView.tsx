@@ -7,6 +7,7 @@ import { obsidianPath, toObsidian } from '@meetcc/exporters/obsidian';
 import { GATE_EVENT } from '@meetcc/exporters/gate';
 import { datedCount, toChecklist, toIcs } from '@meetcc/exporters/tasks';
 import { lazyImport } from '../lib/lazy';
+import { classifyBridgeError } from '../lib/bridgeError';
 import { useToast } from '../toast';
 
 function downloadBlob(name: string, blob: Blob) {
@@ -293,7 +294,7 @@ export function SummaryView({ meeting, record, live }: Props) {
             const diagrams = rendered.filter((d): d is NonNullable<typeof d> => d !== null);
             const logo = await orgLogoPng();
             downloadBlob(`${meeting.id}.pdf`, toPdf(meeting, analysis, diagrams, logo));
-            toast('success', 'PDF diunduh.');
+            toast('success', t('ext.docs.pdfDownloaded'));
           } catch (e) {
             toast('error', t('ext.docs.pdfFailed', { error: (e as Error).message }));
           } finally {
@@ -302,6 +303,35 @@ export function SummaryView({ meeting, record, live }: Props) {
         }}
       >
         ⬇ PDF
+      </button>
+      <button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const res = (await chrome.runtime.sendMessage({
+              type: 'bridge-deliver-meeting',
+              meetingId: meeting.id,
+            })) as { ok?: boolean; error?: string };
+            if (res?.ok) {
+              toast('success', t('ext.summary.desktopSent'));
+            } else {
+              const err = res?.error ?? '';
+              const classified = classifyBridgeError(err);
+              if (classified === 'not_found' || classified === 'not_registered') {
+                toast('error', t('ext.summary.desktopNotConnected'));
+              } else {
+                toast('error', t('ext.summary.desktopFailed', { error: err }));
+              }
+            }
+          } catch (e) {
+            toast('error', t('ext.summary.desktopFailed', { error: (e as Error).message }));
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {t('ext.summary.exportDesktop')}
       </button>
       <span className="spacer" />
       <button onClick={regenerate} disabled={busy}>

@@ -510,12 +510,19 @@ function handleBridgeSend(
  * counter only advances once the host confirms, and the host dedupes by the
  * operation id, so a lost counter costs a redelivery rather than a duplicate.
  */
-async function deliverToDesktop(meeting: Meeting): Promise<void> {
+async function deliverToDesktop(
+  meeting: Meeting,
+  force = false,
+): Promise<{ ok: boolean; error?: string }> {
   const key = BRIDGE_SENT_KEY(meeting.id);
   const sent = Number((await chrome.storage.local.get(key))[key] ?? 0);
-  if (sent >= meeting.entries.length) return;
+  if (!force && sent >= meeting.entries.length) return { ok: true };
   const record = await getAnalysis(meeting.id);
-  const batch = toBridgeBatch(meeting, sent, record?.status === 'done' ? record.analysis : null);
+  const fromSent = force && sent >= meeting.entries.length ? 0 : sent;
+  const batch = toBridgeBatch(meeting, fromSent, record?.status === 'done' ? record.analysis : null);
+  if (force && sent >= meeting.entries.length) {
+    batch.operationId = `${meeting.id}:manual-${Date.now()}`;
+  }
   const res = await handleBridgeSend(batch);
   if (!res.ok) {
     // Still never blocks capture — but a silent return was why an enabled
@@ -532,11 +539,12 @@ async function deliverToDesktop(meeting: Meeting): Promise<void> {
         `[${classifyBridgeError(res.error)}] ${res.error ?? 'native-host-error'}`,
       );
     }
-    return; // desktop not installed, or host down — try again next sweep
+    return { ok: false, error: res.error };
   }
   bridgeErrorLogged = false;
   await chrome.storage.local.set({ [key]: meeting.entries.length });
   await appendAudit('bridge.send', `${meeting.id}: ${batch.entries.length} baris`);
+  return { ok: true };
 }
 
 // The worker is its own context: the dashboard applying a language says
@@ -554,6 +562,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.lang) applyStoredLang(changes.lang.newValue);
 });
 
+function handleBridgeMessage(msg: Record<string, unknown>): Promise<unknown> | null {
+  if (msg.type === 'bridge-send' && msg.batch && typeof msg.batch === 'object') {
+    return handleBridgeSend(msg.batch as object);
+  }
+  if (msg.type === 'bridge-ping') {
+    return handleBridgeSend({ type: 'ping' });
+  }
+  if (msg.type === 'bridge-deliver-meeting' && typeof msg.meetingId === 'string') {
+    return loadMeetings().then((meetings) => {
+      const meeting = meetings.find((m) => m.id === msg.meetingId);
+      if (!meeting) return { ok: false, error: 'Meeting not found' };
+      return deliverToDesktop(meeting, true);
+    });
+  }
+  return null;
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'db' && typeof msg.op === 'string') {
     handleDb({ op: msg.op, args: msg.args })
@@ -567,17 +592,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
     return true; // async response
   }
-  if (msg?.type === 'bridge-send' && msg.batch && typeof msg.batch === 'object') {
-    handleBridgeSend(msg.batch as object)
+  const bridgeTask = msg && typeof msg === 'object' ? handleBridgeMessage(msg as Record<string, unknown>) : null;
+  if (bridgeTask) {
+    bridgeTask
       .then(sendResponse)
-      .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
-    return true; // async response
-  }
-  if (msg?.type === 'bridge-ping') {
-    // The host's reply is irrelevant; what the UI needs is whether the browser
-    // could launch it at all, and the error verbatim when it could not.
-    handleBridgeSend({ type: 'ping' })
-      .then((res) => sendResponse(res))
       .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
     return true; // async response
   }
