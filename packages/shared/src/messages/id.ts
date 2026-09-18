@@ -118,6 +118,9 @@ export const id: Record<keyof typeof en, string> = {
   'ext.settings.meetingLanguage': 'Bahasa rapat',
   'ext.settings.meetingLanguageHint':
     'Bahasa yang diucapkan saat rapat, terpisah dari bahasa antarmuka di atas. Caption Google Meet otomatis pindah ke bahasa ini saat caption menyala (hanya untukmu). Di Teams, Companion membuka konfirmasi Teams untuk mengganti bahasa ucapan saat caption menyala; karena berlaku untuk semua peserta, tidak ada yang berubah sebelum kamu konfirmasi. Impor rekaman mengirimkannya ke speech-to-text.',
+  'ext.settings.autoCaptions': 'Nyalakan teks otomatis',
+  'ext.settings.autoCaptionsHint':
+    'Nyalakan teks (captions) otomatis saat bergabung ke panggilan Google Meet atau Teams. Jika mati: Companion hanya merekam setelah kamu menyalakan teks sendiri.',
 
   // -- extension: provider panel -------------------------------------------
   'ext.provider.label': 'Provider',

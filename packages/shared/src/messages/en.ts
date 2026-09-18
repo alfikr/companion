@@ -122,6 +122,9 @@ export const en = {
   'ext.settings.meetingLanguage': 'Meeting language',
   'ext.settings.meetingLanguageHint':
     'The language people speak in your meetings, separate from the interface language above. Google Meet captions switch to it when captions come on (only for you). In Teams, Companion opens Teams’ own prompt to switch the spoken language when captions come on; it applies to everyone, so nothing changes until you confirm. Imported recordings send it to speech-to-text.',
+  'ext.settings.autoCaptions': 'Auto-enable captions',
+  'ext.settings.autoCaptionsHint':
+    'Turn captions on automatically when you join a Google Meet or Teams call. Off: Companion only captures once you turn captions on yourself.',
 
   // -- extension: provider panel -------------------------------------------
   'ext.provider.label': 'Provider',
