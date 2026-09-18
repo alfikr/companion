@@ -4,12 +4,33 @@ import { fileURLToPath } from 'node:url';
 
 const p = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
 
+// Sanitize unused pdfobject CDN URL in jsPDF which triggers Chrome Web Store
+// MV3 remotely hosted code violations (Blue Argon).
+function sanitizePdfobject() {
+  return {
+    name: 'sanitize-pdfobject',
+    transform(code: string) {
+      if (code.includes('https://cdnjs.cloudflare.com/ajax/libs/pdfobject/')) {
+        return {
+          code: code.replace(
+            /https:\/\/cdnjs\.cloudflare\.com\/ajax\/libs\/pdfobject\/[^\s"'`]+\.js/g,
+            '',
+          ),
+          map: null,
+        };
+      }
+      return null;
+    },
+  };
+}
+
 // base '' -> relative asset URLs, required inside chrome-extension:// pages
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), sanitizePdfobject()],
   base: '',
   resolve: {
     alias: {
+      canvg: p('./src/stubs/canvg.ts'),
       '@meetcc/shared/i18n': p('../../packages/shared/src/i18n'),
       '@meetcc/shared': p('../../packages/shared/src'),
       '@meetcc/ai': p('../../packages/ai/src'),
