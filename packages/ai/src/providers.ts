@@ -61,8 +61,15 @@ async function post(url: string, headers: Record<string, string>, body: unknown)
   return res.json();
 }
 
-/** Some proxies answer chat/completions with an SSE stream even when
- *  stream:false — join the delta chunks back into one string. */
+/**
+ * Join a chat/completions SSE stream back into one string — the normal shape
+ * now that OpenAI-compatible requests ask for `stream: true`, and also what
+ * some proxies send when asked not to stream.
+ *
+ * An `error` chunk fails the call: gateways such as OpenRouter report an
+ * upstream failure mid-generation as `data: {"error":…}` under a 200, and the
+ * content gathered before it is a truncated answer, not a result.
+ */
 export function parseSSEContent(text: string): string {
   let out = '';
   for (const line of text.split('\n')) {
@@ -70,17 +77,70 @@ export function parseSSEContent(text: string): string {
     if (!t.startsWith('data:')) continue;
     const payload = t.slice(5).trim();
     if (!payload || payload === '[DONE]') continue;
+    let chunk: any;
     try {
-      const chunk = JSON.parse(payload);
-      out +=
-        chunk.choices?.[0]?.delta?.content ??
-        chunk.choices?.[0]?.message?.content ??
-        '';
+      chunk = JSON.parse(payload);
     } catch {
-      /* keepalive / comment line */
+      continue; // keepalive / comment line
     }
+    if (chunk?.error) {
+      const err = chunk.error;
+      throw new AIError(typeof err === 'string' ? err : (err.message ?? 'Stream error'), true);
+    }
+    out += chunk?.choices?.[0]?.delta?.content ?? chunk?.choices?.[0]?.message?.content ?? '';
   }
   return out;
+}
+
+/** How long a response body may go without a single byte before the call
+ *  counts as stalled. Idle rather than total: a long summary legitimately
+ *  streams for minutes, a hung one stops sending. */
+export const STREAM_IDLE_TIMEOUT_MS = 90_000;
+
+/**
+ * Read a response body, failing after `STREAM_IDLE_TIMEOUT_MS` of silence.
+ *
+ * `fetchWithTimeout` only bounds the wait for headers. A non-streamed answer
+ * arrived with its headers, so that covered the whole generation; a streamed
+ * one sends headers at once and does all its work in the body, which
+ * `res.text()` would wait on forever if the server stalled mid-stream.
+ */
+async function readBody(res: Response): Promise<string> {
+  if (!res.body) return res.text();
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  let stalled = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const arm = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      stalled = true;
+      void reader.cancel().catch(() => undefined); // resolves the pending read
+    }, STREAM_IDLE_TIMEOUT_MS);
+  };
+  try {
+    arm();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (stalled) {
+        throw new AIError(
+          `Timeout: provider berhenti mengirim data selama ${STREAM_IDLE_TIMEOUT_MS / 1000}s`,
+          true,
+        );
+      }
+      if (done) break;
+      text += decoder.decode(value, { stream: true });
+      arm();
+    }
+    return text + decoder.decode();
+  } catch (e) {
+    if (e instanceof AIError) throw e;
+    // the connection dropped while the body was still arriving
+    throw new AIError(`Network error: ${(e as Error).message}`, true);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** chat/completions call tolerant to both JSON and SSE-stream responses. */
@@ -94,7 +154,7 @@ async function chatCompletions(
     headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body),
   });
-  const text = await res.text();
+  const text = await readBody(res);
   if (!res.ok) {
     throw new AIError(
       `HTTP ${res.status}: ${text.slice(0, 300)}`,
