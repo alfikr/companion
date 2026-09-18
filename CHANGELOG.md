@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.14.0](https://github.com/suiflex/companion/compare/v1.13.0...v1.14.0) (2026-09-18)
+
+
+### Features
+
+* **extension:** add manual export to desktop vault from summary view ([6f2b46b](https://github.com/suiflex/companion/commit/6f2b46ba5d960868fda5bb5ab1d613da37655531))
+
+
+### Bug Fixes
+
+* **extension:** align Chrome Store identity ([2b6b8d9](https://github.com/suiflex/companion/commit/2b6b8d92b94cca883e6c0d70c00172da15b7f4d1))
+* **extension:** align Chrome Store identity ([78072ab](https://github.com/suiflex/companion/commit/78072ab6f92b36b08189d0903dd7e5a2aa760ae4))
+* **extension:** cws compliance and desktop bridge export ([5e1b569](https://github.com/suiflex/companion/commit/5e1b5698629e32943c30a7342f03ad1629d301f8))
+* **extension:** eliminate remotely hosted code and dynamic scripts ([557726b](https://github.com/suiflex/companion/commit/557726b586fb1b35e9d4974382bb108d3b9cadf2))
+* **extension:** fix Chrome publish version extraction ([867649d](https://github.com/suiflex/companion/commit/867649df3a4e15bd663c462b5cbe3e7270068c52))
+* **extension:** fix Chrome publish version extraction ([c063af2](https://github.com/suiflex/companion/commit/c063af29dc4a05c695317d9cec3c6f94408fd7c7))
+* **extension:** respect captions turned off by the user ([88868b7](https://github.com/suiflex/companion/commit/88868b740fae696ac09c6c60c8c2f0a9775d1825))
+* **extension:** respect captions turned off by the user ([96dd13f](https://github.com/suiflex/companion/commit/96dd13f92ec936c92227b88aad11ff9d7257f188))
+
 ## [1.13.0](https://github.com/suiflex/companion/compare/v1.12.0...v1.13.0) (2026-09-14)
 
 
