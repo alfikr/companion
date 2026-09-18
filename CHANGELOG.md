@@ -16,8 +16,15 @@
 * **extension:** eliminate remotely hosted code and dynamic scripts ([557726b](https://github.com/suiflex/companion/commit/557726b586fb1b35e9d4974382bb108d3b9cadf2))
 * **extension:** fix Chrome publish version extraction ([867649d](https://github.com/suiflex/companion/commit/867649df3a4e15bd663c462b5cbe3e7270068c52))
 * **extension:** fix Chrome publish version extraction ([c063af2](https://github.com/suiflex/companion/commit/c063af29dc4a05c695317d9cec3c6f94408fd7c7))
-* **extension:** respect captions turned off by the user ([88868b7](https://github.com/suiflex/companion/commit/88868b740fae696ac09c6c60c8c2f0a9775d1825))
-* **extension:** respect captions turned off by the user ([96dd13f](https://github.com/suiflex/companion/commit/96dd13f92ec936c92227b88aad11ff9d7257f188))
+* **extension:** respect captions turned off by the user (@wahyuakbarwibowo) ([88868b7](https://github.com/suiflex/companion/commit/88868b740fae696ac09c6c60c8c2f0a9775d1825))
+* **extension:** respect captions turned off by the user (@wahyuakbarwibowo) ([96dd13f](https://github.com/suiflex/companion/commit/96dd13f92ec936c92227b88aad11ff9d7257f188))
+
+
+### Thanks
+
+Thanks to everyone who contributed to this release:
+
+* @wahyuakbarwibowo
 
 ## [1.13.0](https://github.com/suiflex/companion/compare/v1.12.0...v1.13.0) (2026-09-14)
 
