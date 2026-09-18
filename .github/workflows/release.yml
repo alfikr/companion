@@ -54,7 +54,9 @@ jobs:
       # one build, two manifests: Chromium takes dist as-is, Gecko needs an
       # event page instead of a service worker (see scripts/pack.mjs)
       - name: Pack the Chromium and Firefox artifacts
-        run: make pack
+        run: |
+          make pack
+          cp meetcc-extension-v*.zip meetcc-extension.zip
 
       # AMO requires the source when the reviewed files are minified, and ours
       # are a Vite bundle. REVIEWERS.md rebuilds the exact tree from it.
@@ -66,6 +68,7 @@ jobs:
         with:
           files: |
             meetcc-extension-v*.zip
+            meetcc-extension.zip
             meetcc-extension-firefox-v*.zip
             meetcc-source-v*.zip
             companion-native-host-v*.mjs
