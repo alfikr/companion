@@ -562,6 +562,23 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.lang) applyStoredLang(changes.lang.newValue);
 });
 
+function handleBridgeMessage(msg: Record<string, unknown>): Promise<unknown> | null {
+  if (msg.type === 'bridge-send' && msg.batch && typeof msg.batch === 'object') {
+    return handleBridgeSend(msg.batch as object);
+  }
+  if (msg.type === 'bridge-ping') {
+    return handleBridgeSend({ type: 'ping' });
+  }
+  if (msg.type === 'bridge-deliver-meeting' && typeof msg.meetingId === 'string') {
+    return loadMeetings().then((meetings) => {
+      const meeting = meetings.find((m) => m.id === msg.meetingId);
+      if (!meeting) return { ok: false, error: 'Meeting not found' };
+      return deliverToDesktop(meeting, true);
+    });
+  }
+  return null;
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === 'db' && typeof msg.op === 'string') {
     handleDb({ op: msg.op, args: msg.args })
@@ -575,27 +592,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
     return true; // async response
   }
-  if (msg?.type === 'bridge-send' && msg.batch && typeof msg.batch === 'object') {
-    handleBridgeSend(msg.batch as object)
-      .then(sendResponse)
-      .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
-    return true; // async response
-  }
-  if (msg?.type === 'bridge-ping') {
-    // The host's reply is irrelevant; what the UI needs is whether the browser
-    // could launch it at all, and the error verbatim when it could not.
-    handleBridgeSend({ type: 'ping' })
-      .then((res) => sendResponse(res))
-      .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
-    return true; // async response
-  }
-  if (msg?.type === 'bridge-deliver-meeting' && typeof msg.meetingId === 'string') {
-    (async () => {
-      const meetings = await loadMeetings();
-      const meeting = meetings.find((m) => m.id === msg.meetingId);
-      if (!meeting) return { ok: false, error: 'Meeting not found' };
-      return deliverToDesktop(meeting, true);
-    })()
+  const bridgeTask = msg && typeof msg === 'object' ? handleBridgeMessage(msg as Record<string, unknown>) : null;
+  if (bridgeTask) {
+    bridgeTask
       .then(sendResponse)
       .catch((e) => sendResponse({ ok: false, error: (e as Error).message }));
     return true; // async response
