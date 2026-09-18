@@ -764,7 +764,11 @@ timers.push(
       void (TEAMS ? teamsAutoPrompt() : meetApplyCaptionLang())
       return
     }
-    if (ccWasOn && inCallToolbar()) ccUserOff = true
+    if (!inCallToolbar()) {
+      // left the call: Teams keeps the tab, so the next call starts fresh
+      ccWasOn = false
+      ccUserOff = false
+    } else if (ccWasOn) ccUserOff = true
     if (ccUserOff) return // user turned captions off: leave them off
     if (ccClicks >= 5) return // selector churned? stop before toggle-looping
     if (TEAMS) {
