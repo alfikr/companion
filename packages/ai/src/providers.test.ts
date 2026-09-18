@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_SETTINGS, type Settings } from '@meetcc/shared';
 import { AIError } from './client';
-import { createClient } from './providers';
+import { createClient, STREAM_IDLE_TIMEOUT_MS } from './providers';
 
 const REQ = { system: 'sys', user: 'usr', json: true };
 
@@ -105,10 +105,98 @@ describe('SSE-always proxies (e.g. custom gateway)', () => {
     expect(out).toBe('Halo');
   });
 
-  it('sends stream:false and treats empty stream as retryable error', async () => {
+  it('skips reasoning-only deltas from a thinking model', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          [
+            'data: {"choices":[{"delta":{"role":"assistant","content":null,"reasoning_content":"Let me think"}}]}',
+            'data: {"choices":[{"delta":{"content":null,"reasoning_content":" about it."}}]}',
+            'data: {"choices":[{"delta":{"content":"{\\"ok\\":"}}]}',
+            'data: {"choices":[{"delta":{"content":"true}"},"finish_reason":"stop"}]}',
+            'data: [DONE]',
+            '',
+          ].join('\n\n'),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+      ),
+    );
+    const out = await createClient(
+      s({ provider: 'custom', baseUrl: 'https://gw.example/v1', model: 'mimo' }),
+    ).complete(REQ);
+    expect(out).toBe('{"ok":true}');
+  });
+
+  it('fails a stream that reports an upstream error mid-generation', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          [
+            'data: {"choices":[{"delta":{"content":"Rapat membahas"}}]}',
+            'data: {"error":{"message":"upstream overloaded","code":502}}',
+            '',
+          ].join('\n\n'),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+      ),
+    );
+    await expect(
+      createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ),
+    ).rejects.toMatchObject({ message: 'upstream overloaded', retryable: true });
+  });
+
+  describe('idle timeout while the body streams', () => {
+    const enc = new TextEncoder();
+    const sse = (content: string) =>
+      enc.encode(`data: {"choices":[{"delta":{"content":"${content}"}}]}\n\n`);
+
+    /** A stream that sends one chunk every `gapMs`, then closes. */
+    function steady(parts: string[], gapMs: number): Response {
+      let i = 0;
+      const body = new ReadableStream<Uint8Array>({
+        async pull(c) {
+          if (i === parts.length) return c.close();
+          await new Promise((r) => setTimeout(r, gapMs));
+          c.enqueue(sse(parts[i++]));
+        },
+      });
+      return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
+
+    afterEach(() => vi.useRealTimers());
+
+    it('gives up on a stream that goes silent mid-generation', async () => {
+      vi.useFakeTimers();
+      // one chunk, then the connection stays open with nothing on it
+      const body = new ReadableStream<Uint8Array>({ start: (c) => c.enqueue(sse('Rapat')) });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } })),
+      );
+      const done = createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ);
+      const outcome = expect(done).rejects.toMatchObject({ retryable: true, message: expect.stringMatching(/^Timeout/) });
+      await vi.advanceTimersByTimeAsync(STREAM_IDLE_TIMEOUT_MS + 1);
+      await outcome;
+    });
+
+    it('lets a long stream run past two minutes while chunks keep coming', async () => {
+      vi.useFakeTimers();
+      const gap = STREAM_IDLE_TIMEOUT_MS - 30_000; // under the idle limit each time
+      vi.stubGlobal('fetch', vi.fn(async () => steady(['Ra', 'pat', ' se', 'lesai'], gap)));
+      const done = createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ);
+      await vi.advanceTimersByTimeAsync(gap * 5); // 4 min in total, far past the old 120s
+      await expect(done).resolves.toBe('Rapat selesai');
+    });
+  });
+
+  it('asks for a stream, still reads a plain JSON body, and treats empty stream as retryable', async () => {
+    // a gateway that ignores `stream` and answers with one JSON body
     const cap = stubFetch(OPENAI_OK);
-    await createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ);
-    expect(cap.body.stream).toBe(false);
+    const out = await createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ);
+    expect(cap.body.stream).toBe(true);
+    expect(out).toBe('halo');
 
     vi.stubGlobal(
       'fetch',
