@@ -105,10 +105,35 @@ describe('SSE-always proxies (e.g. custom gateway)', () => {
     expect(out).toBe('Halo');
   });
 
-  it('sends stream:false and treats empty stream as retryable error', async () => {
+  it('skips reasoning-only deltas from a thinking model', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(
+          [
+            'data: {"choices":[{"delta":{"role":"assistant","content":null,"reasoning_content":"Let me think"}}]}',
+            'data: {"choices":[{"delta":{"content":null,"reasoning_content":" about it."}}]}',
+            'data: {"choices":[{"delta":{"content":"{\\"ok\\":"}}]}',
+            'data: {"choices":[{"delta":{"content":"true}"},"finish_reason":"stop"}]}',
+            'data: [DONE]',
+            '',
+          ].join('\n\n'),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+      ),
+    );
+    const out = await createClient(
+      s({ provider: 'custom', baseUrl: 'https://gw.example/v1', model: 'mimo' }),
+    ).complete(REQ);
+    expect(out).toBe('{"ok":true}');
+  });
+
+  it('asks for a stream, still reads a plain JSON body, and treats empty stream as retryable', async () => {
+    // a gateway that ignores `stream` and answers with one JSON body
     const cap = stubFetch(OPENAI_OK);
-    await createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ);
-    expect(cap.body.stream).toBe(false);
+    const out = await createClient(s({ provider: 'custom', baseUrl: 'https://gw.example/v1' })).complete(REQ);
+    expect(cap.body.stream).toBe(true);
+    expect(out).toBe('halo');
 
     vi.stubGlobal(
       'fetch',

@@ -120,7 +120,17 @@ async function chatCompletions(
   return content;
 }
 
-/** OpenAI / Ollama / LM Studio / OpenRouter / Custom — one wire format. */
+/**
+ * OpenAI / Ollama / LM Studio / OpenRouter / Custom — one wire format.
+ *
+ * Streamed on purpose. A non-streamed completion sends nothing back until the
+ * whole answer exists, and a meeting summary (or a reasoning model thinking
+ * before it) can take well over a minute. Gateways and reverse proxies cut a
+ * silent connection at around 60s, which the browser reports only as "Failed
+ * to fetch" while the server carries on. With a stream, tokens keep the
+ * connection busy. `chatCompletions` already reads either shape, so a gateway
+ * that ignores `stream` and answers with one JSON body still works.
+ */
 function openAICompatible(cfg: Settings): AIClient {
   return {
     provider: cfg.provider,
@@ -131,7 +141,7 @@ function openAICompatible(cfg: Settings): AIClient {
         {
           model: cfg.model,
           temperature: 0.2,
-          stream: false,
+          stream: true,
           messages: [
             { role: 'system', content: req.system },
             { role: 'user', content: req.user },
