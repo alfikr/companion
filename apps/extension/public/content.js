@@ -355,6 +355,20 @@ timers.push(
 let ccClicks = 0
 let announced = false
 let ccBusy = false
+// Once captions were on and then go off while the call toolbar is still
+// there, the user turned them off: stop re-enabling until they turn them on.
+let ccWasOn = false
+let ccUserOff = false
+const TEAMS_MORE =
+  '#callingButtons-showMoreBtn, [data-tid="more-button"], [data-tid="call-more-menu-trigger"]'
+function meetCcButton() {
+  const icon = [...document.querySelectorAll('button i')].find((i) =>
+    i.textContent.trim().startsWith('closed_caption'),
+  )
+  return icon?.closest('button')
+}
+// still in the call = the toolbar control we would click is mounted
+const inCallToolbar = () => !!(TEAMS ? document.querySelector(TEAMS_MORE) : meetCcButton())
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const menuItem = (re) =>
   [
@@ -371,9 +385,7 @@ async function teamsEnableCc() {
   if (ccBusy) return
   ccBusy = true
   try {
-    const more = document.querySelector(
-      '#callingButtons-showMoreBtn, [data-tid="more-button"], [data-tid="call-more-menu-trigger"]',
-    )
+    const more = document.querySelector(TEAMS_MORE)
     if (!more) return // not in a call (or toolbar hidden) — try next tick
     more.click()
     await sleep(600)
@@ -733,7 +745,9 @@ timers.push(
   setInterval(() => {
     if (dead) return
     if (ccOn()) {
-      ccClicks = 0 // CC is on; reset so a manual turn-off gets re-enabled
+      ccClicks = 0
+      ccWasOn = true
+      ccUserOff = false // turned back on: capture resumes
       if (!meetingId) initMeeting('tms-' + Date.now()) // Teams: in-call, CC on, no URL id
       if (!announced && meetingId) {
         announced = true // in the call, CC live -> auto-open transcript window
@@ -750,15 +764,14 @@ timers.push(
       void (TEAMS ? teamsAutoPrompt() : meetApplyCaptionLang())
       return
     }
+    if (ccWasOn && inCallToolbar()) ccUserOff = true
+    if (ccUserOff) return // user turned captions off: leave them off
     if (ccClicks >= 5) return // selector churned? stop before toggle-looping
     if (TEAMS) {
       void teamsEnableCc()
       return
     }
-    const icon = [...document.querySelectorAll('button i')].find((i) =>
-      i.textContent.trim().startsWith('closed_caption'),
-    )
-    const btn = icon?.closest('button')
+    const btn = meetCcButton()
     if (btn) {
       btn.click()
       ccClicks++
@@ -774,7 +787,8 @@ let startedAt = null
 timers.push(
   setInterval(() => {
     if (dead || !announced || !meetingId) return // not in a call yet
-    if (!ccOn()) return // left the call
+    // left the call; CC switched off by the user still counts as in-call
+    if (!ccOn() && !(ccUserOff && inCallToolbar())) return
     const now = new Date().toISOString()
     if (startedAt) {
       store({ [metaKey]: { id: meetingId, startedAt, lastSeenAt: now } })
