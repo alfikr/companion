@@ -88,14 +88,14 @@ function Install-Desktop {
     }
   } else {
   # --- NSIS path (per-user, no admin) -------------------------------------
-  $asset = "companion-desktop-$triple-setup.exe"
+  $asset = "companion-desktop-$triple.exe"
   $out   = Join-Path ([System.IO.Path]::GetTempPath()) $asset
   try {
-  Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/$asset" `
-        -OutFile $out -UseBasicParsing
+    Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/$asset" `
+      -OutFile $out -UseBasicParsing
   } catch {
-  Write-Host "  Skipped: $tag carries no $asset."
-  return
+    Write-Host "  Skipped: $tag carries no $asset."
+    return
   }
   $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Companion'
   $p = Start-Process $out -ArgumentList '/S', "/D=$installDir" -Wait -PassThru
