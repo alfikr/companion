@@ -52,6 +52,10 @@ function Install-Desktop {
     return
   }
 
+  $isAdmin = ([Security.Principal.WindowsPrincipal] `
+    [Security.Principal.WindowsIdentity]::GetCurrent()
+  ).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
   # /releases/latest skips drafts and prereleases, so it never answers with the
   # rolling `companion-desktop-latest` pointer the app polls for updates.
   try {
@@ -61,24 +65,46 @@ function Install-Desktop {
     Write-Host '  Skipped: could not reach the GitHub releases API.'
     return
   }
+  if ($isAdmin) {
+    # --- MSI path (machine-wide, needs UAC) ---------------------------------
+    $asset = "companion-desktop-$triple.msi"
+    $out   = Join-Path ([System.IO.Path]::GetTempPath()) $asset
+    try {
+      Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/$asset" `
+        -OutFile $out -UseBasicParsing
+    } catch {
+      Write-Host "  Skipped: $tag carries no $asset."
+      return
+    }
 
-  $msi = Join-Path ([System.IO.Path]::GetTempPath()) "companion-desktop-$triple.msi"
-  try {
-    Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/companion-desktop-$triple.msi" `
-      -OutFile $msi -UseBasicParsing
-  } catch {
-    Write-Host "  Skipped: $tag carries no companion-desktop-$triple.msi."
-    return
-  }
-
-  # /passive shows progress but asks nothing; the UAC prompt still appears.
-  $p = Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/passive', '/norestart' -Wait -PassThru
-  Remove-Item $msi -Force -ErrorAction SilentlyContinue
-  # 3010 is "success, reboot required" — an install, not a failure.
-  if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) {
-    Write-Host "  Installed $tag"
+    # /passive shows progress but asks nothing; UAC already granted above.
+    $p = Start-Process msiexec.exe -ArgumentList '/i', "`"$out`"", '/passive', '/norestart' -Wait -PassThru
+    Remove-Item $out -Force -ErrorAction SilentlyContinue
+    # 3010 is "success, reboot required" — an install, not a failure.
+    if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) {
+      Write-Host "  Installed $tag (MSI, machine-wide)"
+    } else {
+      Write-Host "  msiexec exited $($p.ExitCode) - the desktop app may not be installed."
+    }
   } else {
-    Write-Host "  msiexec exited $($p.ExitCode) - the desktop app may not be installed."
+  # --- NSIS path (per-user, no admin) -------------------------------------
+  $asset = "companion-desktop-$triple-setup.exe"
+  $out   = Join-Path ([System.IO.Path]::GetTempPath()) $asset
+  try {
+  Invoke-WebRequest -Uri "https://github.com/$repo/releases/download/$tag/$asset" `
+        -OutFile $out -UseBasicParsing
+  } catch {
+  Write-Host "  Skipped: $tag carries no $asset."
+  return
+  }
+  $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Companion'
+  $p = Start-Process $out -ArgumentList '/S', "/D=$installDir" -Wait -PassThru
+  Remove-Item $out -Force -ErrorAction SilentlyContinue
+  if ($p.ExitCode -eq 0) {
+    Write-Host "  Installed $tag (NSIS, per-user -> $installDir)"
+  } else {
+    Write-Host "  installer exited $($p.ExitCode) - the desktop app may not be installed."
+  }
   }
 }
 
